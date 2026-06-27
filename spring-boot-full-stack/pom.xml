@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.0</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.example</groupId>
+    <artifactId>spring-boot-full-stack</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>spring-boot-full-stack</name>
+    <description>基于 Spring Boot 4 + JWT + MyBatis-Plus 的全栈项目模板</description>
+    <url/>
+    <licenses>
+        <license/>
+    </licenses>
+    <developers>
+        <developer/>
+    </developers>
+    <scm>
+        <connection/>
+        <developerConnection/>
+        <tag/>
+        <url/>
+    </scm>
+    <properties>
+        <!-- ================================ -->
+        <!-- 项目全局属性                     -->
+        <!-- ================================ -->
+        <java.version>17</java.version>  <!-- 编译目标 Java 版本 -->
+    </properties>
+
+    <!-- ================================================================ -->
+    <!-- 依赖管理                                                         -->
+    <!-- ================================================================ -->
+    <dependencies>
+
+        <!--
+          Spring Web (MVC) — 把 Java 方法变成 HTTP 接口。
+          本质：用 @XxxMapping 把 URL 路径绑定到 Java 方法，
+                用 @RequestParam / @RequestBody 提取参数，
+                用 @ResponseBody 把返回值变成 JSON 返回给前端。
+          内嵌 Tomcat，不需要额外部署服务器。
+
+          常用注解：
+            @Controller          —— 标记该类为 MVC 控制器（返回视图页面）
+            @RestController      —— @Controller + @ResponseBody，返回 JSON 数据
+            @RequestMapping      —— 映射 HTTP 请求路径（可指定 GET/POST 等方法）
+            @GetMapping          —— 快捷版 @RequestMapping(method = GET)
+            @PostMapping         —— 快捷版 @RequestMapping(method = POST)
+            @PutMapping          —— 快捷版 @RequestMapping(method = PUT)
+            @DeleteMapping       —— 快捷版 @RequestMapping(method = DELETE)
+            @PatchMapping        —— 快捷版 @RequestMapping(method = PATCH)
+            @PathVariable        —— 从 URL 路径中提取参数，如 /user/{id}
+            @RequestParam        —— 从查询参数中取值，如 ?name=xxx
+            @RequestBody         —— 从请求体中反序列化 JSON 到 Java 对象
+            @RequestHeader       —— 从请求头中取值
+            @RequestAttribute    —— 从 request 作用域中取值
+            @ResponseBody        —— 将返回值直接写入 HTTP 响应体（JSON）
+            @ResponseStatus      —— 指定响应状态码
+            @CookieValue         —— 从 Cookie 中取值
+            @SessionAttribute    —— 从 session 中取值
+            @ModelAttribute      —— 绑定表单/查询参数到 Model 对象
+            @ExceptionHandler    —— 声明异常处理方法
+            @ControllerAdvice    —— 全局异常/数据绑定处理
+            @CrossOrigin         —— 允许跨域访问
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+
+        <!--
+          Spring Security — 给接口上锁，只有登录了才能访问。
+          本质：在请求到达 Controller 之前，先经过一长串过滤器（过滤器链）。
+                每个过滤器负责一件事：检查有没有带 JWT、校验密码对不对、
+                看看这个人有没有权限访问某个接口。
+          流程：请求 → JwtAuthorizeFilter(验证Token) → 登录过滤器 → Controller
+          密码用 BCrypt 加密存储，不用明文。
+
+          常用注解：
+            @EnableWebSecurity           —— 启用 Spring Security 配置
+            @EnableMethodSecurity        —— 启用方法级别权限控制
+            @PreAuthorize                —— 方法执行前检查权限（如 hasRole('ADMIN')）
+            @PostAuthorize               —— 方法执行后检查权限
+            @Secured                     —— 要求特定角色（如 "ROLE_ADMIN"）
+            @RolesAllowed                —— JSR-250 标准角色注解
+            @AuthenticationPrincipal     —— 注入当前登录用户信息
+            @CurrentSecurityContext      —— 注入当前 SecurityContext
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- ====================== MySQL 驱动 ====================== -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>  <!-- 运行时才需要，编译期不需要 -->
+        </dependency>
+
+        <!--
+          Lombok — 写一个注解，省掉几十行模板代码。
+          本质：编译期自动把 @Data 展开成 getter/setter/toString 等方法的字节码。
+                你的源码里只有注解，但编译后的 .class 文件里什么都有。
+          打包时不需要带它（optional=true），它只在编译期起作用。
+
+          常用注解：
+            @Data        —— @Getter + @Setter + @ToString + @EqualsAndHashCode + @RequiredArgsConstructor
+            @Getter      —— 为所有字段生成 getter 方法
+            @Setter      —— 为所有字段生成 setter 方法
+            @ToString    —— 生成 toString() 方法
+            @EqualsAndHashCode —— 生成 equals() 和 hashCode()
+            @AllArgsConstructor  —— 生成全参构造器
+            @NoArgsConstructor   —— 生成无参构造器
+            @RequiredArgsConstructor —— 生成 final 字段的构造器
+            @Builder     —— 建造者模式
+            @Slf4j       —— 自动注入 log 对象（不用自己声明 Logger 变量）
+            @Log4j2      —— 使用 Log4j2 日志
+            @NonNull     —— 空值检查，自动抛出 NullPointerException
+            @Value       —— 不可变类（所有字段 private final）
+            @With        —— 生成 withXxx() 链式方法
+            @Accessors   —— 配置 setter 返回类型（如 chain=true 启用链式调用）
+            @UtilityClass —— 工具类（私有构造器 + 所有成员 static）
+        -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>  <!-- 打包时排除此依赖 -->
+        </dependency>
+
+        <!--
+          FastJSON2 — Java 对象和 JSON 互转。
+          本质：把 User 对象变成 {"name":"张三","age":18} 这样的字符串（序列化），
+                反过来把 JSON 字符串变回 Java 对象（反序列化）。
+          前后端通信全靠 JSON 传数据，所以这个库是必不可少的胶水。
+
+          常用 API：
+            JSONObject.parseObject(jsonStr)      —— JSON 字符串 → Java 对象
+            JSONObject.parseArray(jsonStr)       —— JSON 字符串 → Java 数组/List
+            JSONObject.toJSONString(obj)         —— Java 对象 → JSON 字符串（最常用）
+            JSONObject.toJSON(obj)               —— Java 对象 → JSONObject
+            JSONObject.from(javaObj)             —— Java 对象 → JSONObject（另一种方式）
+            @JSONField(name = "xxx")             —— 自定义 JSON 字段名
+            @JSONField(format = "yyyy-MM-dd")   —— 日期格式化
+            @JSONField(serialize = false)        —— 序列化时忽略该字段
+            @JSONType                           —— 类级别 JSON 配置
+            JSONWriter.Feature.WriteNulls        —— 输出 null 值字段
+        -->
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+            <version>2.0.56</version>
+        </dependency>
+
+        <!--
+          java-jwt — 给登录成功的用户发一张"通行证"，以后每次请求带着它。
+          本质：用户登录后，后端把用户信息（ID、用户名、角色）加密签名后
+                拼成一个长字符串（JWT）返回给前端。
+                前端以后每次请求都在请求头里带上这个字符串。
+                后端收到请求后解析验证，确认是谁在访问。
+          关键是：JWT 自带签名，无法伪造；自带过期时间，到期自动失效。
+
+          核心 API：
+            JWT.create()               —— 创建 JWT 令牌构建器
+              .withJWTId(uuid)         —— 设置令牌唯一 ID
+              .withClaim("key", val)  —— 设置自定义声明（payload）
+              .withIssuer(iss)         —— 设置签发者
+              .withSubject(sub)        —— 设置主题（通常是用户名）
+              .withIssuedAt(date)      —— 设置签发时间
+              .withExpiresAt(date)     —— 设置过期时间
+              .sign(algorithm)         —— 使用算法签名生成令牌字符串
+            JWT.require(algorithm)     —— 创建 JWT 验证器
+              .build()                 —— 构建验证器
+              .verify(token)           —— 验证并解析令牌 → DecodedJWT
+            DecodedJWT.getClaim("key") —— 从解析后的令牌中获取声明
+            DecodedJWT.getId()         —— 获取令牌 ID（jti）
+            DecodedJWT.getExpiresAt()  —— 获取过期时间
+            DecodedJWT.getSubject()    —— 获取主题
+
+          支持的签名算法：
+            Algorithm.HMAC256(secret)  —— HMAC-SHA256（对称加密，本项目使用）
+            Algorithm.RSA256(pub, priv) —— RSA-SHA256（非对称加密）
+        -->
+        <dependency>
+            <groupId>com.auth0</groupId>
+            <artifactId>java-jwt</artifactId>
+            <version>4.3.0</version>
+        </dependency>
+
+        <!--
+          Redis — 放在内存里的键值对数据库，读写极快。
+          本质：数据存在内存中，不像 MySQL 存在磁盘，所以读写速度是毫秒级。
+                就像一个超级大型的 Map<String, String>，可以设置过期时间。
+          本项目用它做三件事：
+            1. JWT 黑名单（退出登录后把 Token ID 放进去，让它提前失效）
+            2. 存验证码（3 分钟自动过期，不用手动删除）
+            3. 请求限流计数（统计某个 IP 在几秒内发了多少次请求）
+
+          常用 API（StringRedisTemplate）：
+            opsForValue().set(key, val)          —— 存一个值
+            opsForValue().set(key, val, 3, MINUTES) —— 存值并设 3 分钟过期
+            opsForValue().get(key)               —— 取值
+            opsForValue().increment(key)          —— 自增（计数用）
+            hasKey(key)                          —— 判断键是否存在
+            delete(key)                          —— 删除键
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- ====================== JDBC ====================== -->
+        <!--
+          spring-boot-starter-jdbc：JDBC 数据源支持。
+          Spring Boot 4.x 需要显式引入，用于 DataSource 的自动配置和事务管理。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!--
+          MyBatis-Plus — 写一个接口，自动拥有增删改查。
+          本质：你定义一个接口继承 BaseMapper<Account>，什么都不用写，
+                MP 在启动时自动生成 insert/delete/update/selectById/selectList 等方法的 SQL。
+                条件查询用 Wrappers.lambdaQuery() 链式调用，不用手写 XML。
+          省掉的代码：每个表都要写的 insert/delete/update/select 和对应的 SQL 映射。
+          排除旧版 mybatis-spring 是因为 Spring Boot 4.x 的 Spring Framework 7.x 不兼容旧版。
+
+          常用注解：
+            @TableName("table_name")         —— 实体类 → 数据库表映射
+            @TableId(type = IdType.AUTO)      —— 主键字段（AUTO=自增）
+            @TableField("column_name")       —— 字段映射（非主键）
+            @TableField(exist = false)        —— 非数据库字段
+            @TableField(fill = FieldFill.INSERT) —— 插入时自动填充
+            @TableLogic                        —— 逻辑删除字段
+            @Version                           —— 乐观锁版本号字段
+            @EnumValue                         —— 枚举字段存储值
+
+          核心 API：
+            BaseMapper<T> 自带：
+              .insert(entity)          —— 插入一条记录
+              .deleteById(id)          —— 根据主键删除
+              .updateById(entity)      —— 根据主键更新
+              .selectById(id)          —— 根据主键查询
+              .selectList(wrapper)     —— 查询列表
+              .selectOne(wrapper)      —— 查询单条
+              .selectCount(wrapper)    —— 查询总数
+              .exists(wrapper)         —— 判断是否存在
+
+            Wrappers.lambdaQuery()     —— 链式条件构造器（类型安全）
+            Wrappers.query()           —— 普通条件构造器
+              .eq(column, value)       —— 等于
+              .ne(column, value)       —— 不等于
+              .like(column, value)     —— 模糊匹配
+              .gt(column, value)       —— 大于
+              .ge(column, value)       —— 大于等于
+              .lt(column, value)       —— 小于
+              .le(column, value)       —— 小于等于
+              .in(column, list)        —— IN 查询
+              .orderByAsc(column)      —— 升序排序
+              .orderByDesc(column)     —— 降序排序
+              .groupBy(column)         —— 分组
+              .having(condition)       —— 分组筛选
+              .last("LIMIT 1")         —— 追加自定义 SQL 片段
+
+            IService / ServiceImpl 提供：
+              .save(entity)            —— 插入
+              .saveBatch(list)         —— 批量插入
+              .update().eq(...).update() —— 链式更新
+              .query().eq(...).one()   —— 链式查询
+              .page(pageInfo, wrapper) —— 分页查询
+        -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <version>3.5.16</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mybatis</groupId>
+                    <artifactId>mybatis-spring</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- mybatis-spring 4.0.0：兼容 Spring Framework 7.x 的必要版本 -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-spring</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
+        <!--
+          测试模块 — 不用启动整个项目就能验证代码对不对。
+          本质：@SpringBootTest 启动一个精简的 Spring 容器，
+                用 MockMvc 模拟 HTTP 请求发到 Controller，检查返回值是否符合预期。
+                不用真的打开浏览器，也不用启动服务器。
+
+          spring-boot-starter-test：JUnit 5 + Mockito + AssertJ 等。
+          常用注解：
+            @Test                 —— JUnit 5 测试方法
+            @SpringBootTest       —— 加载完整 Spring 上下文的集成测试
+            @WebMvcTest           —— 仅加载 MVC 层的切片测试
+            @DataJpaTest          —— 仅加载 JPA 层的切片测试
+            @MybatisPlusTest      —— MyBatis-Plus 切片测试
+            @MockBean             —— 在测试上下文中注入 Mock 对象
+            @AutoConfigureMockMvc —— 自动配置 MockMvc（HTTP 模拟）
+
+          spring-boot-starter-security-test：安全测试支持。
+          常用注解：
+            @WithMockUser          —— 以指定用户身份执行测试
+            @WithAnonymousUser     —— 以匿名用户身份执行测试
+            @WithUserDetails       —— 以 UserDetailsService 加载的用户身份执行
+            SecurityMockMvcResultMatchers —— 对认证/授权结果进行断言
+
+          spring-boot-starter-webmvc-test：MockMvc 模拟 HTTP 请求。
+          常用 API：
+            MockMvc.perform(get("/api/xxx"))           —— 模拟 GET 请求
+            MockMvc.perform(post("/api/xxx").content(json)) —— 模拟 POST 请求
+            .andExpect(status().isOk())                —— 断言状态码
+            .andExpect(jsonPath("$.code").value(200)) —— 断言 JSON 字段
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <!-- ================================================================ -->
+    <!-- 构建配置                                                         -->
+    <!-- ================================================================ -->
+    <build>
+        <plugins>
+
+            <!-- ====================== GraalVM Native ====================== -->
+            <!--
+              native-maven-plugin：GraalVM 原生镜像（Native Image）构建插件。
+              作用：
+              - 将 Spring Boot 应用编译为可执行二进制文件（而非运行在 JVM 上）
+              - 大幅减少启动时间（毫秒级）和内存占用
+              - 适合云原生、Serverless 等场景
+              注意：需要安装 GraalVM 并配置 native-image 工具链。
+            -->
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- ====================== Spring Boot Maven ====================== -->
+            <!--
+              spring-boot-maven-plugin：Spring Boot 打包插件。
+              作用：
+              - 将项目打包为可执行的 Fat JAR（内含内嵌 Tomcat 和所有依赖）
+              - 提供 mvn spring-boot:run 直接启动应用
+              - configuration.excludes：打包时排除 Lombok（运行时不需要）
+            -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- ====================== Maven 编译器 ====================== -->
+            <!--
+              maven-compiler-plugin：Java 编译插件。
+              作用：
+              - 将 .java 源文件编译为 .class 字节码
+              - annotationProcessorPaths：指定编译时的注解处理器路径
+              - 这里配置 Lombok 的注解处理器，使 @Data / @Slf4j 等注解在编译时生效
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <!-- 主代码编译阶段 -->
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
+                    <!-- 测试代码编译阶段 -->
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
