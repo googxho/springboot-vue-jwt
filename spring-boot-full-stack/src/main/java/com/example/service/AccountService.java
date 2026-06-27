@@ -2,96 +2,59 @@ package com.example.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.example.entity.dto.Account;
+import com.example.entity.vo.request.ConfirmResetVO;
+import com.example.entity.vo.request.EmailRegisterVO;
+import com.example.entity.vo.request.EmailResetVO;
 import com.example.mapper.AccountMapper;
+import com.example.utils.Const;
+import com.example.utils.FlowUtils;
 import jakarta.annotation.Resource;
+import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+import com.alibaba.fastjson2.JSONObject;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 /**
- * 用户认证服务 —— 从数据库加载用户信息供 Spring Security 认证使用。
- * <p>
- * ┌─────────────────────────────────────────────────────────────────────┐
- * │  职责：        实现 UserDetailsService 接口                        │
- * │  作用：        Spring Security 登录时自动调用此类查询数据库         │
- * │  数据表：      db_account（用户表）                                │
- * │  密码：        数据库中存储的是 BCrypt 加密后的密码                │
- * └─────────────────────────────────────────────────────────────────────┘
- * <p>
- * 认证时的调用链：
- * <p>
- *   POST /api/auth/login
- *     │
- *     ▼
- *   UsernamePasswordAuthenticationFilter（拦截登录请求）
- *     │
- *     ▼
- *   AuthenticationManager.authenticate()
- *     │
- *     ▼
- *   ★ AccountService.loadUserByUsername()       ← 本类
- *     │
- *     ├─ AccountMapper 查数据库（用户名 / 邮箱）
- *     ├─ 返回 UserDetails（用户名、加密密码、角色）
- *     │
- *     ▼
- *   BCryptPasswordEncoder 比对密码
- *     │
- *     ├─ 匹配 → 认证成功 → 调用 onAuthSuccess()
- *     └─ 不匹配 → 认证失败 → 调用 onAuthFailure()
+ * 用户认证服务 —— 从数据库加载用户信息供 Spring Security 认证使用，
+ * 同时处理邮件验证码、用户注册和密码重置等操作。
  */
-@Service  // 注册为 Spring 服务 Bean，Spring Security 会自动发现这个 UserDetailsService
+@Service
 public class AccountService implements UserDetailsService {
 
-    // MyBatis-Plus Mapper，注入后可直接操作 db_account 表
+    // 验证邮件发送冷却时间限制，秒为单位
+    @Value("${spring.web.verify.mail-limit}")
+    int verifyLimit;
+
     @Resource
     AccountMapper mapper;
 
-    /**
-     * 根据用户名或邮箱加载用户信息（Spring Security 认证时自动调用）。
-     * <p>
-     * 支持两种登录方式：
-     * <ul>
-     *   <li>用户名登录：输入 username</li>
-     *   <li>邮箱登录：输入 email</li>
-     * </ul>
-     * 优先按用户名查找，没找到再按邮箱查找。
-     * <p>
-     * 流程：
-     * <pre>
-     *   ① 查 db_account WHERE username = 输入值
-     *   ② 没找到 → 查 db_account WHERE email = 输入值
-     *   ③ 都没找到 → 抛 UsernameNotFoundException
-     *   ④ 找到 → 封装成 UserDetails 返回
-     * </pre>
-     *
-     * @param username 前端提交的用户名（也可能是邮箱地址）
-     * @return Spring Security 的 UserDetails（包含用户名、密码、角色）
-     * @throws UsernameNotFoundException 用户不存在时抛出
-     */
+    @Resource
+    AmqpTemplate rabbitTemplate;
+
+    @Resource
+    StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    PasswordEncoder passwordEncoder;
+
+    @Resource
+    FlowUtils flow;
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // 第一步：按用户名查找
-        Account account = mapper.selectOne(
-                Wrappers.<Account>lambdaQuery().eq(Account::getUsername, username));
-
-        // 第二步：没找到，按邮箱查找（支持邮箱登录）
-        if (account == null) {
-            account = mapper.selectOne(
-                    Wrappers.<Account>lambdaQuery().eq(Account::getEmail, username));
-        }
-
-        // 第三步：都没找到，抛出异常
-        if (account == null) {
+        Account account = this.findAccountByNameOrEmail(username);
+        if (account == null)
             throw new UsernameNotFoundException("用户名或密码错误");
-        }
-
-        // 第四步：将数据库 Account 转为 Spring Security 的 UserDetails
-        // withUsername() → 设置用户名
-        // password()    → 设置数据库中的加密密码（BCrypt）
-        // roles()       → 设置用户角色（如 "user"、"admin"）
         return User
                 .withUsername(account.getUsername())
                 .password(account.getPassword())
@@ -99,17 +62,150 @@ public class AccountService implements UserDetailsService {
                 .build();
     }
 
-    /**
-     * 根据用户名查询完整的 Account 对象。
-     * <p>
-     * 这个方法用于登录成功后获取用户的额外信息（如 ID）。
-     * 在 onAuthSuccess() 中调用，用于生成包含 userId 的 JWT。
-     *
-     * @param username 用户名
-     * @return Account 完整用户对象，查不到返回 null
-     */
     public Account findAccountByUsername(String username) {
         return mapper.selectOne(
                 Wrappers.<Account>lambdaQuery().eq(Account::getUsername, username));
+    }
+
+    /**
+     * 生成注册验证码存入Redis中，并将邮件发送请求提交到消息队列等待发送
+     * @param type 类型
+     * @param email 邮件地址
+     * @param address 请求IP地址
+     * @return 操作结果，null表示正常，否则为错误原因
+     */
+    public String registerEmailVerifyCode(String type, String email, String address){
+        synchronized (address.intern()) {
+            if (!this.verifyLimit(address))
+                return "请求频繁，请稍后再试";
+            Random random = new Random();
+            int code = random.nextInt(899999) + 100000;
+            JSONObject data = new JSONObject();
+            data.put("type", type);
+            data.put("email", email);
+            data.put("code", code);
+            // 转成 JSON 字符串发送，避免 Java 序列化带来的白名单问题
+            rabbitTemplate.convertAndSend(Const.MQ_MAIL, data.toJSONString());
+            stringRedisTemplate.opsForValue()
+                    .set(Const.VERIFY_EMAIL_DATA + email, String.valueOf(code), 3, TimeUnit.MINUTES);
+            return null;
+        }
+    }
+
+    /**
+     * 邮件验证码注册账号操作，需要检查验证码是否正确以及邮箱、用户名是否存在重名
+     * @param info 注册基本信息
+     * @return 操作结果，null表示正常，否则为错误原因
+     */
+    public String registerEmailAccount(EmailRegisterVO info){
+        String email = info.getEmail();
+        String code = this.getEmailVerifyCode(email);
+        if (code == null) return "请先获取验证码";
+        if (!code.equals(info.getCode())) return "验证码错误，请重新输入";
+        if (this.existsAccountByEmail(email)) return "该邮件地址已被注册";
+        String username = info.getUsername();
+        if (this.existsAccountByUsername(username)) return "该用户名已被他人使用，请重新更换";
+        String password = passwordEncoder.encode(info.getPassword());
+        Account account = new Account(null, info.getUsername(),
+                password, email, Const.ROLE_DEFAULT, new Date());
+        if (mapper.insert(account) == 0) {
+            return "内部错误，注册失败";
+        } else {
+            this.deleteEmailVerifyCode(email);
+            return null;
+        }
+    }
+
+    /**
+     * 邮件验证码重置密码操作，需要检查验证码是否正确
+     * @param info 重置基本信息
+     * @return 操作结果，null表示正常，否则为错误原因
+     */
+    public String resetEmailAccountPassword(EmailResetVO info) {
+        String verify = resetConfirm(new ConfirmResetVO(info.getEmail(), info.getCode()));
+        if (verify != null) return verify;
+        String email = info.getEmail();
+        String password = passwordEncoder.encode(info.getPassword());
+        boolean update = mapper.update(null,
+                Wrappers.<Account>lambdaUpdate()
+                        .eq(Account::getEmail, email)
+                        .set(Account::getPassword, password)) > 0;
+        if (update) {
+            this.deleteEmailVerifyCode(email);
+        }
+        return update ? null : "更新失败，请联系管理员";
+    }
+
+    /**
+     * 重置密码确认操作，验证验证码是否正确
+     * @param info 验证基本信息
+     * @return 操作结果，null表示正常，否则为错误原因
+     */
+    public String resetConfirm(ConfirmResetVO info) {
+        String email = info.getEmail();
+        String code = this.getEmailVerifyCode(email);
+        if (code == null) return "请先获取验证码";
+        if (!code.equals(info.getCode())) return "验证码错误，请重新输入";
+        return null;
+    }
+
+    /**
+     * 移除Redis中存储的邮件验证码
+     * @param email 电邮
+     */
+    private void deleteEmailVerifyCode(String email){
+        String key = Const.VERIFY_EMAIL_DATA + email;
+        stringRedisTemplate.delete(key);
+    }
+
+    /**
+     * 获取Redis中存储的邮件验证码
+     * @param email 电邮
+     * @return 验证码
+     */
+    private String getEmailVerifyCode(String email){
+        String key = Const.VERIFY_EMAIL_DATA + email;
+        return stringRedisTemplate.opsForValue().get(key);
+    }
+
+    /**
+     * 针对IP地址进行邮件验证码获取限流
+     * @param address 地址
+     * @return 是否通过验证
+     */
+    private boolean verifyLimit(String address) {
+        String key = Const.VERIFY_EMAIL_LIMIT + address;
+        return flow.limitOnceCheck(key, verifyLimit);
+    }
+
+    /**
+     * 通过用户名或邮件地址查找用户
+     * @param text 用户名或邮件
+     * @return 账户实体
+     */
+    public Account findAccountByNameOrEmail(String text){
+        return mapper.selectOne(
+                Wrappers.<Account>lambdaQuery()
+                        .eq(Account::getUsername, text)
+                        .or()
+                        .eq(Account::getEmail, text));
+    }
+
+    /**
+     * 查询指定邮箱的用户是否已经存在
+     * @param email 邮箱
+     * @return 是否存在
+     */
+    private boolean existsAccountByEmail(String email){
+        return mapper.exists(Wrappers.<Account>query().eq("email", email));
+    }
+
+    /**
+     * 查询指定用户名的用户是否已经存在
+     * @param username 用户名
+     * @return 是否存在
+     */
+    private boolean existsAccountByUsername(String username){
+        return mapper.exists(Wrappers.<Account>query().eq("username", username));
     }
 }

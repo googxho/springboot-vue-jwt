@@ -17,12 +17,13 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+
+
 
 /**
  * Spring Security 核心配置类。
@@ -64,16 +65,6 @@ public class SecurityConfiguration {
     UserDetailsService userDetailsService;
 
     /**
-     * 配置密码编码器（BCrypt 加密算法）。
-     * Spring Security 认证时自动用此编码器比对用户输入的密码
-     * 和数据库中存储的加密密码是否一致。
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    /**
      * 核心安全过滤器链配置 —— 定义所有 HTTP 安全规则。
      * <p>
      * 构建流程（链式调用）：
@@ -112,6 +103,10 @@ public class SecurityConfiguration {
 
                     // /api/auth/** 开头的请求（登录、注册等）不需要认证，直接放行
                     conf.requestMatchers("/api/auth/**").permitAll();
+                    // /error 是 Spring Boot 内置的错误处理路径，也要放行
+                    // 否则参数校验失败时，Spring 转发到 /error，Spring Security 又把它
+                    // 重定向到 /login，导致用户看到的是 302 而不是具体的错误信息
+                    conf.requestMatchers("/error").permitAll();
                     // 其他所有请求都需要登录认证后才能访问
                     conf.anyRequest().authenticated();
                 })
@@ -139,11 +134,30 @@ public class SecurityConfiguration {
                 // 这强制每次请求都必须通过 JWT 来识别用户身份
                 .sessionManagement(conf ->
                         conf.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // ========== 6. 注册自定义过滤器 ==========
+                // ========== 6. 异常处理 ==========
+                // 不让 Spring Security 把未认证的请求重定向到 /login
+                // 而是直接返回 JSON 格式的错误信息
+                .exceptionHandling(conf -> {
+                    // 未登录时访问需要认证的接口 → 返回 401
+                    conf.authenticationEntryPoint((request, response, authException) -> {
+                        response.setContentType("application/json;charset=utf-8");
+                        response.setStatus(401);
+                        PrintWriter writer = response.getWriter();
+                        writer.write(RestBean.unauthorized("请先登录").asJsonString());
+                    });
+                    // 已登录但权限不足时 → 返回 403
+                    conf.accessDeniedHandler((request, response, accessDeniedException) -> {
+                        response.setContentType("application/json;charset=utf-8");
+                        response.setStatus(403);
+                        PrintWriter writer = response.getWriter();
+                        writer.write(RestBean.forbidden("权限不足").asJsonString());
+                    });
+                })
+                // ========== 7. 注册自定义过滤器 ==========
                 // 将 JwtAuthorizeFilter 添加到 UsernamePasswordAuthenticationFilter 之前
                 // 这样请求到达登录认证之前，JWT 过滤器会先尝试从请求头中提取 Token 进行认证
                 .addFilterBefore(jwtAuthorizeFilter, UsernamePasswordAuthenticationFilter.class)
-                // ========== 7. 构建 ==========
+                // ========== 8. 构建 ==========
                 .build();
     }
 

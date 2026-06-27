@@ -96,6 +96,38 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+        <!--
+          Spring Mail — 发送电子邮件。
+          本质：通过 JavaMailSender 接口发送邮件（支持简单文本、HTML、带附件）。
+          本项目用它发送注册/重置密码的验证码邮件。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!--
+          RabbitMQ — 消息队列，异步处理耗时任务。
+          本质：生产者把消息发到队列，消费者从队列取消息处理。
+                核心好处是异步和解耦——生成验证码后先返回"已发送"，
+                后台再慢慢发邮件，用户不用等。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
+        <!--
+          Validation — 检查请求参数对不对。
+          本质：在 DTO/VO 字段上写 @Email/@Length/@Pattern 等注解，
+                Spring 在请求到达 Controller 前自动校验参数，
+                不通过就直接返回 400 错误，不用自己写 if-else 判断。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
         <!-- ====================== MySQL 驱动 ====================== -->
         <dependency>
             <groupId>com.mysql</groupId>
@@ -339,6 +371,18 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
 
     </dependencies>
