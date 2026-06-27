@@ -388,9 +388,51 @@
     </dependencies>
 
     <!-- ================================================================ -->
+    <!-- 多环境 Profiles                                                 -->
+    <!-- ================================================================ -->
+    <profiles>
+        <!-- 开发环境 -->
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <environment>dev</environment>
+            </properties>
+        </profile>
+        <!-- 生产环境 -->
+        <profile>
+            <id>prod</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <environment>prod</environment>
+            </properties>
+        </profile>
+    </profiles>
+
+    <!-- ================================================================ -->
     <!-- 构建配置                                                         -->
     <!-- ================================================================ -->
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>application*.yaml</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>application.yaml</include>
+                    <include>application-${environment}.yaml</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
 
             <!-- ====================== GraalVM Native ====================== -->

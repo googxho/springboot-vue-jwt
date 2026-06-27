@@ -239,14 +239,23 @@ public class SecurityConfiguration {
         // ===== 获取数据库中的用户 ID =====
         // 登录时 JwtAuthorizeFilter 还未执行，所以不能从 request 属性拿 userId。
         // 通过 AccountService 从数据库查询完整的用户信息来获取 ID。
+        com.example.service.AccountService accountService =
+                (com.example.service.AccountService) userDetailsService;
         com.example.entity.dto.Account account =
-                ((com.example.service.AccountService) userDetailsService)
-                        .findAccountByUsername(user.getUsername());
+                accountService.findAccountByNameOrEmail(user.getUsername());
         int userId = account != null ? account.getId() : 0;
 
         // ===== 生成 JWT 令牌 =====
         // 使用数据库中的真实用户名和用户 ID
         String token = utils.createJwt(user, user.getUsername(), userId);
+
+        // ===== 判断是否触发频率限制 =====
+        if (token == null) {
+            // 用户在冷却期内频繁登录触发了频率限制
+            response.getWriter().write(
+                    RestBean.forbidden("登录验证频繁，请稍后再试").asJsonString());
+            return;
+        }
 
         // ===== 组装响应体 =====
         AuthorizeVO vo = new AuthorizeVO();
