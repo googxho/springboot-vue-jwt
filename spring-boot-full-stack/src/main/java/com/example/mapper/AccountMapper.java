@@ -5,10 +5,10 @@ import com.example.entity.dto.Account;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
- * 用户表（db_account）的数据访问层（Mapper）。
+ * 用户表（account）的数据访问层（Mapper）。
  * <p>
  * ┌─────────────────────────────────────────────────────────────────────┐
- * │  作用：        操作数据库中的 db_account 表                          │
+ * │  作用：        操作数据库中的 account 表                          │
  * │  技术：        MyBatis-Plus                                        │
  * │  继承：        BaseMapper<Account> → 自带全套 CRUD 方法            │
  * │  注册：        @Mapper → MyBatis 自动扫描并创建代理对象             │
@@ -34,9 +34,9 @@ import org.apache.ibatis.annotations.Mapper;
  * <p>
  * 关联的实体类：
  *   ┌─ Account ────────────────────────────────────────────┐
- *   │  @TableName("db_account")  → 映射到 db_account 表     │
- *   │  @TableId(type = IdType.AUTO) → id 字段自增主键       │
- *   │  字段: id, username, password, email, role, regTime   │
+ *   │  @TableName("account")  → 映射到 account 表     │
+ *   │  @TableId(type = IdType.AUTO) → sid 字段自增主键       │
+ *   │  字段: sid, username, password, email, role, regTime   │
  *   └──────────────────────────────────────────────────────┘
  */
 @Mapper  // 告诉 MyBatis：这是一个 Mapper 接口，启动时自动生成代理实现类
@@ -47,7 +47,7 @@ public interface AccountMapper extends BaseMapper<Account> {
     //
     // 如果要加自定义查询（如：根据邮箱和状态联合查询），可以这样写：
     //
-    //   @Select("SELECT * FROM db_account WHERE email = #{email}")
+    //   @Select("SELECT * FROM account WHERE email = #{email}")
     //   Account findAccountByEmail(String email);
     //
     // 或者在 resources/mapper/AccountMapper.xml 中写 SQL。

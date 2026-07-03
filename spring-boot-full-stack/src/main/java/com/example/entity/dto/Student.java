@@ -6,21 +6,19 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.example.entity.BaseData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-
-import java.util.Date;
+import lombok.NoArgsConstructor;
 
 /**
- * 数据库中的用户信息
+ * 学生实体，映射 student 表。
  */
 @Data
-@TableName("account")
+@TableName("student")
+@NoArgsConstructor
 @AllArgsConstructor
-public class Account implements BaseData {
+public class Student implements BaseData {
     @TableId(type = IdType.AUTO)
-    Integer sid;
-    String username;
-    String password;
-    String email;
-    String role;
-    Date registerTime;
+    private Integer id;    // 学生ID
+    private String name;   // 姓名
+    private String sex;    // 性别
+    private String grade;  // 年级
 }

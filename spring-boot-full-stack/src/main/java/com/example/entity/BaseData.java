@@ -75,12 +75,12 @@ public interface BaseData {
  *  ▐ 场景：从数据库查出 User，要返回给前端
  * ───────────────────────────────────────────────────────────────────────
  *
- *  【数据库表】db_account
- *    id  |  username  |  password  |  email  |  role  |  register_time
+ *  【数据库表】account
+ *    sid  |  username  |  password  |  email  |  role  |  register_time
  *
  *  【实体类】Account（DTO，直接映射数据库）
  *    class Account {
- *        Integer id;          // 数据库有
+ *        Integer sid;          // 数据库有
  *        String username;     // 数据库有
  *        String password;     // 数据库有  ← 这是敏感信息！
  *        String email;        // 数据库有

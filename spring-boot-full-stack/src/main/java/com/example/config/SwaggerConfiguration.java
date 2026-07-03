@@ -18,6 +18,7 @@ import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.parameters.QueryParameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
+import io.swagger.v3.oas.models.Paths;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,14 +55,6 @@ public class SwaggerConfiguration {
                 .info(new Info().title("示例项目 API 文档")
                         .description("欢迎来到本示例项目API测试文档，在这里可以快速进行接口调试")
                         .version("1.0")
-                        .license(new License()
-                                .name("项目开源地址")
-                                .url("https://github.com/Ketuer/SpringBoot-Vue-Template-Jwt")
-                        )
-                )
-                .externalDocs(new ExternalDocumentation()
-                        .description("我们的官方网站")
-                        .url("https://itbaima.net")
                 );
     }
 
@@ -74,7 +67,12 @@ public class SwaggerConfiguration {
      */
     @Bean
     public OpenApiCustomizer customerGlobalHeaderOpenApiCustomizer() {
-        return api -> this.authorizePathItems().forEach(api.getPaths()::addPathItem);
+        return api -> {
+            if (api.getPaths() == null) {
+                api.setPaths(new Paths());
+            }
+            this.authorizePathItems().forEach(api.getPaths()::addPathItem);
+        };
     }
 
     /**

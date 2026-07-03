@@ -124,7 +124,7 @@ public class SpringBootFullStackApplication {
  *   │  Entity/DTO/VO 层（数据模型层）                                     │
  *   │  ────────────────────────                                           │
  *   │  职责：定义数据结构，不包含业务逻辑                                  │
- *   │  Entity：对应数据库表（Account → db_account 表）                    │
+ *   │  Entity：对应数据库表（Account → account 表）                    │
  *   │  DTO：数据传输对象（Service 内部传递用）                             │
  *   │  VO：视图对象（返回给前端的格式）                                   │
  *   └────────────────────────────────────────────────────────────────────┘

@@ -1,15 +1,25 @@
-# SpringBoot-Vue-Template-Jwt
+# 🚀 SpringBoot-Vue-Template-Jwt
 
-基于 **Spring Boot 4 + JWT + MyBatis-Plus** 的全栈项目模板，集成了用户认证系统与交互式前端。
+> 一个「**好玩又好学**」的全栈练习项目 —— 后端以 **Spring Boot 4 + JWT + MyBatis-Plus** 实践认证授权与 RESTful CRUD；前端用 **Vue 3 + PixiJS + matter.js** 探索 2D 物理游戏与图书后台管理系统的结合。适合用来练手 Spring Boot 4 新特性、前后端联调、以及趣味交互开发。
+
+
+## 📸 截图
+![alt text](image.png)
+![alt text](image-1.png)
+
+---
 
 ## 🏗 项目结构
 
 ```
 SpringBoot-Vue-Template-Jwt/
-├── spring-boot-full-stack/    # 🖥 主后端 —— Spring Boot 4 认证服务
-├── pixijs-full-stack/         # 🎮 主前端 —— 登录页 + 愤怒小鸟游戏
+├── spring-boot-full-stack/    # 🖥 主后端 —— Spring Boot 4 认证 + 图书管理系统
+├── pixijs-full-stack/         # 🎮 主前端 —— 登录页 + 愤怒小鸟游戏 + 管理后台
 ├── my-project-backend/        # 🗄 旧版后端 —— Spring Boot 3 参考实现
-├── database.sql               # 📦 MySQL 数据库初始化脚本
+├── database.sql               # 📦 MySQL 数据库初始化脚本（account 表）
+├── book.sql                   # 📚 图书表测试数据
+├── borrow.sql                 # 📋 借阅表测试数据
+├── student.sql                # 👨‍🎓 学生表测试数据
 └── README.md
 ```
 
@@ -33,6 +43,8 @@ SpringBoot-Vue-Template-Jwt/
 
 ### API 接口
 
+**认证模块：**
+
 | 方法 | 路径 | 说明 | 需认证 |
 |------|------|------|--------|
 | `POST` | `/api/auth/login` | 登录（form-urlencoded） | ❌ |
@@ -42,9 +54,38 @@ SpringBoot-Vue-Template-Jwt/
 | `POST` | `/api/auth/reset-confirm` | 重置密码 - 验证 | ❌ |
 | `POST` | `/api/auth/reset-password` | 重置密码 - 执行 | ❌ |
 
+**图书管理模块：**
+
+| 方法 | 路径 | 说明 | 需认证 |
+|------|------|------|--------|
+| `GET` | `/api/book/list` | 查询全部图书 | ✅ |
+| `GET` | `/api/book/{id}` | 根据 ID 查询图书 | ✅ |
+| `POST` | `/api/book/add` | 新增图书 | ✅ |
+| `PUT` | `/api/book/update` | 更新图书 | ✅ |
+| `DELETE` | `/api/book/{id}` | 删除图书 | ✅ |
+
+**借阅管理模块：**
+
+| 方法 | 路径 | 说明 | 需认证 |
+|------|------|------|--------|
+| `GET` | `/api/borrow/list` | 查询全部借阅记录 | ✅ |
+| `GET` | `/api/borrow/{id}` | 根据 ID 查询借阅记录 | ✅ |
+| `POST` | `/api/borrow/borrow` | 借书 | ✅ |
+| `DELETE` | `/api/borrow/return/{id}` | 还书 | ✅ |
+
+**学生管理模块：**
+
+| 方法 | 路径 | 说明 | 需认证 |
+|------|------|------|--------|
+| `GET` | `/api/student/list` | 查询全部学生 | ✅ |
+| `GET` | `/api/student/{id}` | 根据 ID 查询学生 | ✅ |
+| `POST` | `/api/student/add` | 新增学生 | ✅ |
+| `PUT` | `/api/student/update` | 更新学生 | ✅ |
+| `DELETE` | `/api/student/{id}` | 删除学生 | ✅ |
+
 **响应格式：**
 ```json
-{ "id": 123456, "code": 200, "data": {...}, "message": "请求成功" }
+{ "sid": 123456, "code": 200, "data": {...}, "message": "请求成功" }
 ```
 
 **登录成功返回：**
@@ -118,6 +159,10 @@ POST /api/auth/login (username + password)
   - 碰撞粒子特效
   - Web Audio API 程序化音效
 - **物理登录框**：登录框是 matter.js 物理墙，小鸟撞到会真实反弹
+- **图书管理系统**：登录后的管理后台
+  - 📚 图书管理：查询、新增、编辑、删除图书
+  - 📋 借阅管理：借书（选学生+选图书）、还书
+  - 👨‍🎓 学生管理：查询、新增、编辑、删除学生
 - **Vite 代理**：`/api` → `http://localhost:8080`
 
 ### 页面一览
@@ -125,7 +170,10 @@ POST /api/auth/login (username + password)
 | 路径 | 内容 |
 |------|------|
 | `/` | 登录页（PixiJS 全屏画布 + 愤怒小鸟游戏 + 登录表单） |
-| `/index` | 主页（登录成功后显示用户信息） |
+| `/index` | 管理后台首页（侧边栏导航 + 欢迎页） |
+| `/index/books` | 图书管理页 |
+| `/index/borrows` | 借阅管理页 |
+| `/index/students` | 学生管理页 |
 
 注册和重置密码通过页面内切换实现，无需路由跳转，游戏状态不中断。
 
@@ -213,31 +261,51 @@ pnpm dev
 ## 📜 数据库表结构
 
 ```sql
-CREATE TABLE `db_account` (
-  `id`            INT           NOT NULL AUTO_INCREMENT,
+-- 用户表
+CREATE TABLE `account` (
+  `sid`            INT           NOT NULL AUTO_INCREMENT,
   `username`      VARCHAR(255)  DEFAULT NULL,
   `email`         VARCHAR(255)  DEFAULT NULL,
   `password`      VARCHAR(255)  DEFAULT NULL,  -- BCrypt 加密
   `role`          VARCHAR(255)  DEFAULT NULL,  -- 默认 "user"
   `register_time` DATETIME      DEFAULT NULL,
-  PRIMARY KEY (`id`),
+  PRIMARY KEY (`sid`),
   UNIQUE KEY `unique_email`    (`email`),
   UNIQUE KEY `unique_username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 图书表
+CREATE TABLE `book` (
+  `id`    INT           NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(255)  DEFAULT NULL,
+  `desc`  VARCHAR(500)  DEFAULT NULL,
+  `price` DECIMAL(10,2) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 学生表
+CREATE TABLE `student` (
+  `id`    INT          NOT NULL AUTO_INCREMENT,
+  `name`  VARCHAR(50)  DEFAULT NULL,
+  `sex`   VARCHAR(10)  DEFAULT NULL,
+  `grade` VARCHAR(10)  DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 借阅表
+CREATE TABLE `borrow` (
+  `id`          INT          NOT NULL AUTO_INCREMENT,
+  `sid`         INT          DEFAULT NULL,
+  `bid`         INT          DEFAULT NULL,
+  `time`        DATETIME     DEFAULT NULL,
+  `bookName`    VARCHAR(255) DEFAULT NULL,
+  `studentName` VARCHAR(50)  DEFAULT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
 ---
 
-## 📸 截图
-![alt text](image.png)
-
-> 启动后登录页效果：全屏 PixiJS 渲染的风景背景 + 愤怒小鸟游戏 + 玻璃态表单卡片。
-> 
-> <p align="center">
->   <i>左 70% 为游戏区，右 30% 为登录表单</i>
-> </p>
-
----
 
 ## 📄 许可证
 

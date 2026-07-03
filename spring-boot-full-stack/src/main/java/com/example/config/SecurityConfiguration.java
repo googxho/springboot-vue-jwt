@@ -138,12 +138,16 @@ public class SecurityConfiguration {
                 // ========== 4. 关闭 CSRF 防护 ==========
                 // 前后端分离项目使用 Token（JWT）认证，不再需要 CSRF 防护
                 .csrf(AbstractHttpConfigurer::disable)
-                // ========== 5. 会话管理 ==========
+                // ========== 5. 允许 iframe 嵌入 ==========
+                // 默认 X-Frame-Options: DENY 会阻止浏览器在 iframe 中加载页面。
+                // 开发阶段需要在前端内嵌 Swagger UI，所以关闭此限制。
+                .headers(conf -> conf.frameOptions(frame -> frame.disable()))
+                // ========== 6. 会话管理 ==========
                 // 设置为"无状态"——服务端不创建 Session，每次请求都独立认证
                 // 这强制每次请求都必须通过 JWT 来识别用户身份
                 .sessionManagement(conf ->
                         conf.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // ========== 6. 异常处理 ==========
+                // ========== 7. 异常处理 ==========
                 // 不让 Spring Security 把未认证的请求重定向到 /login
                 // 而是直接返回 JSON 格式的错误信息
                 .exceptionHandling(conf -> {
@@ -162,7 +166,7 @@ public class SecurityConfiguration {
                         writer.write(RestBean.forbidden("权限不足").asJsonString());
                     });
                 })
-                // ========== 7. 注册自定义过滤器 ==========
+                // ========== 8. 注册自定义过滤器 ==========
                 // 过滤器链执行顺序（从前到后）：
                 //   RequestLogFilter → JwtAuthorizeFilter → UsernamePasswordAuthenticationFilter
                 //
@@ -173,7 +177,7 @@ public class SecurityConfiguration {
                 //    处理表单登录（/api/auth/login），认证通过后生成新 JWT
                 .addFilterBefore(requestLogFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthorizeFilter, RequestLogFilter.class)
-                // ========== 8. 构建 ==========
+                // ========== 9. 构建 ==========
                 .build();
     }
 
@@ -259,7 +263,7 @@ public class SecurityConfiguration {
                 (com.example.service.AccountService) userDetailsService;
         com.example.entity.dto.Account account =
                 accountService.findAccountByNameOrEmail(user.getUsername());
-        int userId = account != null ? account.getId() : 0;
+        int userId = account != null ? account.getSid() : 0;
 
         // ===== 生成 JWT 令牌 =====
         // 使用数据库中的真实用户名和用户 ID

@@ -104,3 +104,41 @@ export function post(url, data, success, failure) {
 export function get(url, success, failure) {
   internalGet(url, success, failure)
 }
+
+function internalPut(url, data, success, failure) {
+  api.put(url, data, { headers: accessHeader() }).then(({ data }) => {
+    if (data.code === 200) {
+      success(data.data)
+    } else if (data.code === 401) {
+      deleteAccessToken()
+      window.location.reload()
+    } else {
+      failure?.(data.message || '请求失败')
+    }
+  }).catch(err => {
+    failure?.(err.response?.data?.message || err.message || '网络错误')
+  })
+}
+
+export function put(url, data, success, failure) {
+  internalPut(url, data, success, failure)
+}
+
+function internalDelete(url, success, failure) {
+  api.delete(url, { headers: accessHeader() }).then(({ data }) => {
+    if (data.code === 200) {
+      success(data.data)
+    } else if (data.code === 401) {
+      deleteAccessToken()
+      window.location.reload()
+    } else {
+      failure?.(data.message || '请求失败')
+    }
+  }).catch(err => {
+    failure?.(err.response?.data?.message || err.message || '网络错误')
+  })
+}
+
+export function del(url, success, failure) {
+  internalDelete(url, success, failure)
+}

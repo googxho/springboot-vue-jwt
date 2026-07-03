@@ -13,11 +13,11 @@ import java.util.Date;
  * 数据库中的用户信息
  */
 @Data
-@TableName("db_account")
+@TableName("account")
 @AllArgsConstructor
 public class Account implements BaseData {
     @TableId(type = IdType.AUTO)
-    Integer id;          // 用户ID
+    Integer sid;          // 用户ID
     String username;     // 用户名
     String password;     // 密码（BCrypt加密）
     String email;        // 邮箱
