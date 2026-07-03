@@ -1,6 +1,6 @@
-# 🚀 SpringBoot-Vue-Template-Jwt
+# 图书管理系统 V4
 
-> 一个「**好玩又好学**」的全栈练习项目 —— 后端以 **Spring Boot 4 + JWT + MyBatis-Plus** 实践认证授权与 RESTful CRUD；前端用 **Vue 3 + PixiJS + matter.js** 探索 2D 物理游戏与图书后台管理系统的结合。适合用来练手 Spring Boot 4 新特性、前后端联调、以及趣味交互开发。
+> 一个全栈练习项目 —— 后端以 **Spring Boot 4 + JWT + MyBatis-Plus** 实践认证授权与 RESTful CRUD；前端用 **Vue 3 + PixiJS + matter.js** 探索 2D 物理游戏与图书后台管理系统的结合。适合用来练手 Spring Boot 4 新特性、前后端联调、以及趣味交互开发。
 
 
 ## 📸 截图
