@@ -2,6 +2,7 @@ package com.example.entity;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONWriter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.slf4j.MDC;
 
 import java.util.Optional;
@@ -48,7 +49,12 @@ import java.util.Optional;
  * @param message 提示消息
  * @param <T>     响应数据的类型
  */
-public record RestBean<T>(long id, int code, T data, String message) {
+@Schema(description = "统一响应体")
+public record RestBean<T>(
+        @Schema(description = "请求ID，用于日志追踪（每个请求唯一）") long id,
+        @Schema(description = "状态码：200=成功，401=未登录，403=无权限，404=未找到") int code,
+        @Schema(description = "业务数据") T data,
+        @Schema(description = "提示信息") String message) {
 
     /**
      * 成功响应 —— 带业务数据。

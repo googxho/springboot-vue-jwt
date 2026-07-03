@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.example.entity.BaseData;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,11 +19,19 @@ import java.math.BigDecimal;
 @TableName("book")
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "图书信息")
 public class Book implements BaseData {
     @TableId(type = IdType.AUTO)
-    private Integer id;       // 图书ID
-    private String title;     // 书名
+    @Schema(description = "图书ID（自增主键，新增时无需填写）", example = "1")
+    private Integer id;
+
+    @Schema(description = "书名", example = "三体")
+    private String title;
+
     @TableField("`desc`")
-    private String desc;      // 简介（desc 是 MySQL 保留关键字，需反引号转义）
-    private BigDecimal price; // 价格
+    @Schema(description = "图书简介", example = "刘慈欣创作的科幻小说")
+    private String desc;
+
+    @Schema(description = "图书价格（元）", example = "39.90")
+    private BigDecimal price;
 }
